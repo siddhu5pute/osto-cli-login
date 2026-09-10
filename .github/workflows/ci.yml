@@ -51,3 +51,9 @@ jobs:
           DB_PASSWORD: devpassword123
           DB_NAME: osto_auth
         run: go test ./... -v
+
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run security scan
+        run: gosec ./...
