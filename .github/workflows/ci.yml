@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - addtests
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: siddhu5pute
+          POSTGRES_PASSWORD: devpassword123
+          POSTGRES_DB: osto_auth
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U siddhu5pute -d osto_auth"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Format check
+        run: test -z "$(gofmt -l .)"
+
+      - name: Run tests
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: siddhu5pute
+          DB_PASSWORD: devpassword123
+          DB_NAME: osto_auth
+        run: go test ./... -v
