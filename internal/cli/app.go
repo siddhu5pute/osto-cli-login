@@ -12,8 +12,13 @@ import (
 
 var ErrExit = errors.New("exit requested")
 
+type PromptService interface {
+	ReadLine() (string, error)
+	ReadPassword(prompt string) (string, error)
+}
+
 type App struct {
-	prompt         *Prompt
+	prompt         PromptService
 	output         io.Writer
 	authService    AuthService
 	sessionService SessionService
@@ -26,7 +31,7 @@ type App struct {
 }
 
 func NewApp(
-	prompt *Prompt,
+	prompt PromptService,
 	output io.Writer,
 	authService AuthService,
 	sessionService SessionService,
@@ -90,10 +95,10 @@ func (a *App) executeCommand(line string) error {
 		return a.handleWhoAmI()
 
 	case "enable-2fa":
-		return fmt.Errorf("2FA setup is not available yet")
+		return a.handleEnable2FA()
 
 	case "disable-2fa":
-		return fmt.Errorf("2FA setup is not available yet")
+		return a.handleDisable2FA()
 
 	case "logout":
 		return a.handleLogout()
@@ -162,6 +167,24 @@ func (a *App) handleLogin() error {
 		return err
 	}
 
+	if user.TOTPEnabled {
+		if user.TOTPSecret == nil || *user.TOTPSecret == "" {
+			return errors.New("2FA is enabled but no TOTP secret is configured")
+		}
+
+		code, err := a.promptValue("2FA code: ")
+		if err != nil {
+			return err
+		}
+
+		if err := a.totpService.VerifyCode(
+			*user.TOTPSecret,
+			code,
+		); err != nil {
+			return fmt.Errorf("invalid 2FA code: %w", err)
+		}
+	}
+
 	session, err := a.sessionService.Create(
 		context.Background(),
 		user.ID,
@@ -195,6 +218,70 @@ func (a *App) handleWhoAmI() error {
 	}
 
 	a.printUserDetails()
+
+	return nil
+}
+
+func (a *App) handleEnable2FA() error {
+	if err := a.requireAuthentication(); err != nil {
+		return err
+	}
+
+	if err := a.validateCurrentSession(); err != nil {
+		return err
+	}
+
+	if a.currentUser.TOTPEnabled {
+		return errors.New("2FA is already enabled")
+	}
+
+	setup, err := a.totpService.GenerateSecret(a.currentUser.Username)
+	if err != nil {
+		return fmt.Errorf("generating 2FA setup: %w", err)
+	}
+
+	if err := a.userService.EnableTOTP(
+		context.Background(),
+		a.currentUser.ID,
+		setup.Secret,
+	); err != nil {
+		return fmt.Errorf("enabling 2FA: %w", err)
+	}
+
+	a.currentUser.TOTPSecret = &setup.Secret
+	a.currentUser.TOTPEnabled = true
+
+	fmt.Fprintln(a.output, "2FA enabled successfully.")
+	fmt.Fprintln(a.output, "Add this account to your authenticator app.")
+	fmt.Fprintf(a.output, "Provisioning URI: %s\n", setup.ProvisionURI)
+
+	return nil
+}
+
+func (a *App) handleDisable2FA() error {
+	if err := a.requireAuthentication(); err != nil {
+		return err
+	}
+
+	if err := a.validateCurrentSession(); err != nil {
+		return err
+	}
+
+	if !a.currentUser.TOTPEnabled {
+		return errors.New("2FA is not enabled")
+	}
+
+	if err := a.userService.DisableTOTP(
+		context.Background(),
+		a.currentUser.ID,
+	); err != nil {
+		return fmt.Errorf("disabling 2FA: %w", err)
+	}
+
+	a.currentUser.TOTPSecret = nil
+	a.currentUser.TOTPEnabled = false
+
+	fmt.Fprintln(a.output, "2FA disabled successfully.")
 
 	return nil
 }
