@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: siddhu5pute
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
       POSTGRES_DB: osto_auth
+    ports:
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +24,7 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: siddhu5pute
-      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}docker-compose up -d postgres
       DB_NAME: osto_auth
     stdin_open: true
     tty: true
