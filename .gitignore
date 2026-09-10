@@ -3,3 +3,4 @@
 /bin/
 /tmp/
 *.log
+.osto_history
