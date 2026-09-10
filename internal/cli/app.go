@@ -17,6 +17,8 @@ type App struct {
 	output         io.Writer
 	authService    AuthService
 	sessionService SessionService
+	userService    UserService
+	totpService    TOTPService
 
 	currentUser *db.User
 	sessionID   string
@@ -28,12 +30,16 @@ func NewApp(
 	output io.Writer,
 	authService AuthService,
 	sessionService SessionService,
+	userService UserService,
+	totpService TOTPService,
 ) *App {
 	return &App{
 		prompt:         prompt,
 		output:         output,
 		authService:    authService,
 		sessionService: sessionService,
+		userService:    userService,
+		totpService:    totpService,
 	}
 }
 

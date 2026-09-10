@@ -13,6 +13,7 @@ import (
 	"github.com/siddhu5pute/osto-cli-login/internal/db"
 	"github.com/siddhu5pute/osto-cli-login/internal/repository"
 	"github.com/siddhu5pute/osto-cli-login/internal/session"
+	"github.com/siddhu5pute/osto-cli-login/internal/totp"
 )
 
 func main() {
@@ -56,6 +57,8 @@ func run() error {
 		cfg.SessionTimeout,
 	)
 
+	totpService := totp.NewService("Osto CLI")
+
 	prompt, err := cli.NewPrompt()
 	if err != nil {
 		return fmt.Errorf("initializing CLI: %w", err)
@@ -70,6 +73,8 @@ func run() error {
 			login:        loginService,
 		},
 		sessionService,
+		userRepository,
+		totpService,
 	)
 
 	return app.Run()

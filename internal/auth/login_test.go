@@ -24,6 +24,21 @@ type fakeUserRepository struct {
 	getUserErr error
 }
 
+func (f *fakeUserRepository) EnableTOTP(
+	ctx context.Context,
+	userID int,
+	secret string,
+) error {
+	return nil
+}
+
+func (f *fakeUserRepository) DisableTOTP(
+	ctx context.Context,
+	userID int,
+) error {
+	return nil
+}
+
 func (f *fakeUserRepository) GetUserByUsername(
 	ctx context.Context,
 	username string,

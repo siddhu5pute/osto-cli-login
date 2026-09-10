@@ -250,3 +250,69 @@ func (r *UserRepository) UpdateLastLogin(
 
 	return nil
 }
+
+func (r *UserRepository) EnableTOTP(
+	ctx context.Context,
+	userID int,
+	secret string,
+) error {
+	const query = `
+		UPDATE users
+		SET totp_secret = $1,
+		    totp_enabled = TRUE
+		WHERE id = $2
+	`
+
+	result, err := r.db.ExecContext(
+		ctx,
+		query,
+		secret,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("enabling TOTP: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking TOTP update: %w", err)
+	}
+
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *UserRepository) DisableTOTP(
+	ctx context.Context,
+	userID int,
+) error {
+	const query = `
+		UPDATE users
+		SET totp_secret = NULL,
+		    totp_enabled = FALSE
+		WHERE id = $1
+	`
+
+	result, err := r.db.ExecContext(
+		ctx,
+		query,
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("disabling TOTP: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking TOTP disable: %w", err)
+	}
+
+	if rows == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}

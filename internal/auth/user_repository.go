@@ -17,4 +17,8 @@ type UserRepository interface {
 	ResetFailedAttempts(ctx context.Context, userID int) error
 
 	UpdateLastLogin(ctx context.Context, userID int, loginTime time.Time) error
+
+	EnableTOTP(ctx context.Context, userID int, secret string) error
+
+	DisableTOTP(ctx context.Context, userID int) error
 }
